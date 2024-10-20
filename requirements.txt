@@ -1,0 +1,5 @@
+kagglehub
+transformers
+bitsandbytes
+tabulate
+torch
