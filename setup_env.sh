@@ -6,15 +6,15 @@ if [ ! -f "requirements.txt" ]; then
   exit 1
 fi
 
-# Check if Python is installed
-if ! command -v python &> /dev/null; then
-  echo "Python is not installed. Please install Python first."
+# Check if Python3 is installed
+if ! command -v python3 &> /dev/null; then
+  echo "Python3 is not installed. Please install Python3 first."
   exit 1
 fi
 
 # Create the virtual environment in the 'env' directory
 echo "Creating virtual environment in the 'env' directory..."
-python -m venv env
+python3 -m venv env
 
 # Check if the virtual environment was created successfully
 if [ ! -d "env" ]; then
@@ -22,10 +22,10 @@ if [ ! -d "env" ]; then
   exit 1
 fi
 
-# Activate the virtual environment (Windows Git Bash version)
+# Activate the virtual environment (Linux version)
 echo "Activating virtual environment..."
-if [ -f "env/Scripts/activate" ]; then
-  source env/Scripts/activate
+if [ -f "env/bin/activate" ]; then
+  source env/bin/activate
 else
   echo "Activation script not found. Something went wrong."
   exit 1
@@ -33,6 +33,7 @@ fi
 
 # Install dependencies from requirements.txt
 echo "Installing dependencies from requirements.txt..."
+pip install --upgrade pip
 pip install -r requirements.txt
 
 # Deactivate the virtual environment
@@ -40,5 +41,4 @@ echo "Deactivating virtual environment..."
 deactivate
 
 echo "All dependencies installed and environment setup. To activate later, run:"
-echo "source env/Scripts/activate"
-
+echo "source env/bin/activate"
