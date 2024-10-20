@@ -87,7 +87,7 @@ def perform_result_analysis(genre_occurrences: Dict[str,int]):
             file_path = os.path.join(input_dir, filename)
             df = pd.read_csv(file_path)
 
-            _weighted_chi_square(genre_weights=genre_weights, df=df)
+            chi_square_df =_weighted_chi_square(genre_weights=genre_weights, df=df)
 
             #Generate heatmap for weighted chi-square statistics
             _generate_plot(chi_square_df=chi_square_df, model_name=model_name, ranking_window=ranking_window)
