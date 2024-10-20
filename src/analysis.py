@@ -7,29 +7,13 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from scipy.stats import chi2_contingency
 import os
 
-# Occurrences of genres (from the provided data)
-genre_occurrences = {
-    "Dramas": 1803,
-    "Comedies": 1208,
-    "Documentaries": 1028,
-    "Children & Family": 782,
-    "Action & Adventure": 727,
-    "Romantic": 615,
-    "Thrillers": 532,
-    "Horror": 396,
-    "Stand-Up Comedy": 377,
-    "Crime": 360,
-    "Music & Musicals": 283,
-    "Sci-Fi & Fantasy": 257
-}
-
 # Set the directory where your CSV files are located
 input_dir = "results"
 output_dir = "analysis_results"
 os.makedirs(output_dir, exist_ok=True)
 
 
-def _generate_plot(chi_square_df:pd.DataFrame, model_name:str, ranking_window:int):
+def _generate_plot(chi_square_df: pd.DataFrame, model_name: str, ranking_window: int):
     plt.figure(figsize=(10, 6))
     sns.heatmap(chi_square_df[['weighted_chi2']].T, annot=True, cmap="Blues", cbar=True)
     
@@ -46,7 +30,7 @@ def _generate_plot(chi_square_df:pd.DataFrame, model_name:str, ranking_window:in
     plt.close()  # Close the plot to avoid overlapping in future iterations
 
 
-def _weighted_chi_square(genre_weights: Dict[str,float], df:pd.DataFrame):
+def _weighted_chi_square(genre_weights: Dict[str, float], df: pd.DataFrame):
     # One-hot encode the genres
     mlb = MultiLabelBinarizer()
     genres_encoded = pd.DataFrame(mlb.fit_transform(df['batch_genres']), columns=mlb.classes_)
@@ -69,11 +53,40 @@ def _weighted_chi_square(genre_weights: Dict[str,float], df:pd.DataFrame):
     return chi_square_df
 
 
-def perform_result_analysis(genre_occurrences: Dict[str,int]):
+def _generate_transitivity_histograms(data: Dict[str, Dict[str, pd.DataFrame]]):
+    """ Generate histograms for transitivity_check occurrences across models per ranking_window """
+    
+    # Iterate over the ranking windows and generate histograms
+    for ranking_window, models_data in data.items():
+        plt.figure(figsize=(10, 6))
+        
+        for model_name, df in models_data.items():
+            # Count occurrences of transitivity_check for the current model
+            transitivity_counts = df['transitivity_check'].value_counts()
+            
+            # Create the histogram
+            transitivity_counts.plot(kind='bar', label=model_name)
+        
+        plt.title(f'Transitivity Check Occurrences\nRanking Window: {ranking_window}')
+        plt.xlabel('Transitivity Check (0 or 1)')
+        plt.ylabel('Count')
+        plt.legend(loc="upper right")
+        plt.tight_layout()
+
+        # Save the histogram plot for the current ranking window
+        output_path = os.path.join(output_dir, f"transitivity_histogram_window_{ranking_window}.png")
+        plt.savefig(output_path)
+        plt.close()  # Close the plot to avoid overlapping in future iterations
+
+
+def perform_result_analysis(genre_occurrences: Dict[str, int]):
 
     # Step 1: Calculate weights based on genre occurrence (inverse of frequency)
     max_occurrence = max(genre_occurrences.values())  # Normalize against the max
     genre_weights = {genre: max_occurrence / occurrence for genre, occurrence in genre_occurrences.items()}
+
+    # Dictionary to hold data for transitivity histogram generation
+    transitivity_data = {}
 
     # Iterate over all CSV files in the directory
     for filename in os.listdir(input_dir):
@@ -87,10 +100,20 @@ def perform_result_analysis(genre_occurrences: Dict[str,int]):
             file_path = os.path.join(input_dir, filename)
             df = pd.read_csv(file_path)
 
-            chi_square_df =_weighted_chi_square(genre_weights=genre_weights, df=df)
+            # Perform weighted Chi-Square analysis
+            chi_square_df = _weighted_chi_square(genre_weights=genre_weights, df=df)
 
-            #Generate heatmap for weighted chi-square statistics
+            # Generate heatmap for weighted chi-square statistics
             _generate_plot(chi_square_df=chi_square_df, model_name=model_name, ranking_window=ranking_window)
 
+            # Collect transitivity data for the histogram
+            if ranking_window not in transitivity_data:
+                transitivity_data[ranking_window] = {}
+            transitivity_data[ranking_window][model_name] = df
 
-    print(f"Heatmaps saved in {output_dir}")
+    # Generate histograms for transitivity occurrences
+    _generate_transitivity_histograms(transitivity_data)
+
+    print(f"Heatmaps and histograms saved in {output_dir}")
+
+
