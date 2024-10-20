@@ -114,9 +114,11 @@ async def process_model(
             indices, descriptions = zip(*combination)
 
             # Construct the prompt for the model
-            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}':\n"
+            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. Return the result as a dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
             for idx, desc in enumerate(descriptions):
-                prompt += f"Description {indices[idx] + 1}: {desc}\n"
+                prompt += f"Description {indices[idx] +1 }: {desc}\n"
+            prompt += "\nReturn the rankings in the following format: {index_of_description: rank_of_description}."
+
 
             # Tokenize and process the prompt with the model
             inputs = tokenizer([prompt], return_tensors="pt", padding=True, truncation=True).to(device)
@@ -131,7 +133,7 @@ async def process_model(
             batch_results.extend({indices:batch_results})
 
         transitivity = transitivity_check()
-        
+
         batch_genres = [genre for _, genre in batches_info[batch_idx]] 
         _update_results(csv_filename=csv_filename, batch=batch, batch_genres=batch_genres,
                         batch_idx=batch_idx, transitivity_check=transitivity)
