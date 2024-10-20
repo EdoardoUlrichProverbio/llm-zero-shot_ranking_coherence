@@ -14,7 +14,7 @@ from src.resources.model_names import model_names
 BATCH_SIZE = 8
 SEED = 42
 RANKING_WINDOW = 2
-MODEL_BATCH = 3
+MODEL_BATCH = 2
 
 BATCH_PREPARATION = True
 MODEL_LOADING = True
