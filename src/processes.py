@@ -142,6 +142,7 @@ async def process_model(
                 )
             batch_results = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             batch_results.extend({indices:batch_results})
+            print({indices:batch_results})
 
         transitivity = transitivity_check(rankings=batch_results)
 
