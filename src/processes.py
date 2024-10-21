@@ -128,8 +128,7 @@ async def process_model(
             indices, descriptions = zip(*combination)
 
             # Construct the prompt for the model
-            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. 
-            Return the result as a dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
+            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. Return the result as a dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
             for idx, desc in enumerate(descriptions):
                 prompt += f"{indices[idx] +1 }: {desc}\n"
             prompt += "\nReturn the rankings in the following format: \{index_of_description\}: \{rank_of_description}."
