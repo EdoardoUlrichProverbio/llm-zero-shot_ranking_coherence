@@ -28,6 +28,7 @@ def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
         quantization_config=quantization_config,  # Pass the quantization config
         device_map="auto"  # Automatically map the model to available devices (GPU/CPU)
     )
+    print(f"Loaded model: {model_name}")
 
     return tokenizer, model
 
