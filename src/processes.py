@@ -112,10 +112,9 @@ async def process_model(
     print(f"Starting processing with model {model_name}...")
 
     for batch_idx, batch in enumerate(batches):
-        print(batch_idx)
+        print(f"batch: {batch_idx}")
         batch_results = []
         batch_paragon = batches_paragon[batch_idx]
-        transitivity_violations = 0
 
         # Assign a fixed index to each description in the batch
         indexed_descriptions = {i: desc for i, desc in enumerate(batch)}
@@ -133,7 +132,6 @@ async def process_model(
                 prompt += f"Description {indices[idx] +1 }: {desc}\n"
             prompt += "\nReturn the rankings in the following format: {index_of_description: rank_of_description}."
 
-            print(prompt)
             # Tokenize and process the prompt with the model
             inputs = tokenizer([prompt], return_tensors="pt", padding=False, truncation=True).to(device)
             with torch.no_grad():
@@ -142,7 +140,6 @@ async def process_model(
                     max_new_tokens=50,    # Maximum number of tokens to generate
                     do_sample=False       # Disable sampling for deterministic results
                 )
-            print("arriva qui")
             batch_results = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             batch_results.extend({indices:batch_results})
 
