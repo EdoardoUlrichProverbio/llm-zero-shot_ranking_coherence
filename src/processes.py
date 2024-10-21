@@ -7,19 +7,32 @@ import torch
 import csv
 import os
 
-def _save_results(model_name: str, ranking_window:str):
 
+def _save_results(model_name: str, ranking_window: str) -> str:
+    # Sanitize the model name to avoid special characters in filenames
+    safe_model_name = model_name.replace("/", "_")
     results_dir = "results"
     if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
-    
-    csv_filename = f"{results_dir}/{model_name}_Tresult_window={ranking_window}.csv"
+        try:
+            os.makedirs(results_dir)
+            print(f"Created results directory: {results_dir}")
+        except Exception as e:
+            print(f"Error creating results directory: {e}")
+            raise
+
+    csv_filename = f"{results_dir}/{safe_model_name}_Tresult_window={ranking_window}.csv"
     
     # Check if file exists, and if not, create it with headers
     if not os.path.exists(csv_filename):
-        with open(csv_filename, mode='w', newline='') as file:
-            writer = csv.DictWriter(file, fieldnames=["batch_idx", "batch", "batch_genres", "transitivity_check"])
-            writer.writeheader()
+        try:
+            with open(csv_filename, mode='w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=["batch_idx", "batch", "batch_genres", "transitivity_check"])
+                writer.writeheader()
+            print(f"Created CSV file: {csv_filename}")
+        except Exception as e:
+            print(f"Error creating CSV file: {csv_filename} - {e}")
+            raise
+    
     return csv_filename
 
 
@@ -99,6 +112,7 @@ async def process_model(
     print(f"Starting processing with model {model_name}...")
 
     for batch_idx, batch in enumerate(batches):
+        print(batch_idx)
         batch_results = []
         batch_paragon = batches_paragon[batch_idx]
         transitivity_violations = 0
@@ -119,16 +133,16 @@ async def process_model(
                 prompt += f"Description {indices[idx] +1 }: {desc}\n"
             prompt += "\nReturn the rankings in the following format: {index_of_description: rank_of_description}."
 
-
+            print(prompt)
             # Tokenize and process the prompt with the model
-            inputs = tokenizer([prompt], return_tensors="pt", padding=True, truncation=True).to(device)
+            inputs = tokenizer([prompt], return_tensors="pt", padding=False, truncation=True).to(device)
             with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
                     max_new_tokens=50,    # Maximum number of tokens to generate
                     do_sample=False       # Disable sampling for deterministic results
                 )
-
+            print("arriva qui")
             batch_results = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             batch_results.extend({indices:batch_results})
 

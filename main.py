@@ -1,6 +1,5 @@
-import gc 
-import asyncio
-
+import gc
+import asyncio  
 from src.initialization_LLMs import load_all_models
 from src.processes import process_model
 from src.dataset_func.load_dataset import load_dataset
@@ -40,51 +39,60 @@ if __name__ == "__main__":
             batch_size=BATCH_SIZE, seed=SEED, df=processed_dataset
         )
 
-    # Define the main asynchronous function
-    async def main():
+    if MODEL_LOADING:
+        if RUN_MODE == 'single':
+            # Single model mode: Load and process one model at a time without asyncio
+            for model_name in model_names:
+                print(f"Loading and processing model: {model_name}")
 
-        if MODEL_LOADING:
-            tasks = []
-            semaphore = asyncio.Semaphore(MODEL_BATCH)  # Controls concurrent execution
+                # Load the model and tokenizer for the current model
+                tokenizers, models = load_all_models([model_name])
+                tokenizer = tokenizers[model_name]
+                model = models[model_name]
 
-            async def limited_process_model(model_name, model, tokenizer):
-                async with semaphore:
-                    try:
-                        # Schedule the processing task for each model
-                        return await process_model(
-                            model_name=model_name,
-                            model=model,
-                            tokenizer=tokenizer,
-                            batches=batches,
-                            batches_info=batches_info,
-                            batches_paragon=batches_paragon,
-                            ranking_window=RANKING_WINDOW
-                        )
-                    except Exception as e:
-                        print(f"Error processing model {model_name}: {e}")
-                        return None
+                try:
+                    # Use asyncio.run() to run the async process_model function in a synchronous context
+                    asyncio.run(process_model(
+                        model_name=model_name,
+                        model=model,
+                        tokenizer=tokenizer,
+                        batches=batches,
+                        batches_info=batches_info,
+                        batches_paragon=batches_paragon,
+                        ranking_window=RANKING_WINDOW
+                    ))
+                except Exception as e:
+                    print(f"Error processing model {model_name}: {e}")
 
-            if RUN_MODE == 'single':
-                # Single model mode: Load and process one model at a time
-                for model_name in model_names:
-                    # Load the model and tokenizer for the current model
-                    tokenizers, models = load_all_models([model_name])
-                    tokenizer = tokenizers[model_name]
-                    model = models[model_name]
+                # Free memory after processing the model
+                del tokenizer, model, tokenizers, models
+                gc.collect()  # Trigger garbage collection
 
-                    # Schedule the processing task using the semaphore
-                    task = limited_process_model(model_name=model_name, model=model, tokenizer=tokenizer)
-                    tasks.append(task)
+        elif RUN_MODE == 'batch':
+            # Batch mode: Process models in batches using asyncio
 
-                    # Run tasks for the current model (since MODEL_BATCH = 1, one at a time)
-                    await asyncio.gather(*tasks)
-                    # Free memory after the model is processed
-                    del tokenizer, model, tokenizers, models
-                    gc.collect()  # Trigger garbage collection
-                    tasks = []
+            async def batch_process():
+                tasks = []
+                semaphore = asyncio.Semaphore(MODEL_BATCH)  # Controls concurrent execution
 
-            elif RUN_MODE == 'batch':
-                # Batch mode: Process models in batches
+                async def limited_process_model(model_name, model, tokenizer):
+                    async with semaphore:
+                        try:
+                            # Schedule the processing task for each model
+                            return await process_model(
+                                model_name=model_name,
+                                model=model,
+                                tokenizer=tokenizer,
+                                batches=batches,
+                                batches_info=batches_info,
+                                batches_paragon=batches_paragon,
+                                ranking_window=RANKING_WINDOW
+                            )
+                        except Exception as e:
+                            print(f"Error processing model {model_name}: {e}")
+                            return None
+
+                # Split model_names into batches
                 model_batches = [model_names[i:i + MODEL_BATCH] for i in range(0, len(model_names), MODEL_BATCH)]
 
                 # Process each batch of models
@@ -100,22 +108,19 @@ if __name__ == "__main__":
                         # Schedule the processing task using the semaphore
                         task = limited_process_model(model_name=model_name, model=model, tokenizer=tokenizer)
                         tasks.append(task)
-                
+
                     # Run tasks for the current batch
                     await asyncio.gather(*tasks)
-                    # Free memory after the model is processed
-                    del tokenizer, model, tokenizers, models
+
+                    # Free memory after processing the batch
+                    del tokenizers, models
                     gc.collect()  # Trigger garbage collection
-                    tasks = []
 
-            # Run all tasks concurrently, but limited to MODEL_BATCH at a time
-            all_results = await asyncio.gather(*tasks)
+            # Run batch processing asynchronously
+            asyncio.run(batch_process())
 
-        if ANALYSIS:
-            # Perform result analysis if enabled
-            perform_result_analysis(genre_occurrences=genre_occurrences)
+    if ANALYSIS:
+        # Perform result analysis if enabled
+        perform_result_analysis(genre_occurrences=genre_occurrences)
 
-        print("All results have been saved.")
-
-    # Run the main function
-    asyncio.run(main())
+    print("All results have been saved.")
