@@ -2,17 +2,18 @@
 from transformers import PreTrainedTokenizer, PreTrainedModel
 from itertools import combinations
 from typing import List, Tuple, Dict
+import pandas as pd
 import asyncio
 import torch
+import json
 import csv
 import ast
 import os
 
 
-def _save_results(model_name: str, ranking_window: str) -> str:
+def _save_results(model_name: str, ranking_window: str, results_dir:str) -> str:
     # Sanitize the model name to avoid special characters in filenames
     safe_model_name = model_name.replace("/", "_")
-    results_dir = "results"
     if not os.path.exists(results_dir):
         try:
             os.makedirs(results_dir)
@@ -175,6 +176,29 @@ def _process_prompts_in_batches(
     return results
 
 
+def _save_batch_results_to_csv(batch_results: list[dict[int, int]], 
+                               output_csv_file, 
+                               batch_index=None,
+                               batches_info=None,
+                               batch_paragon=None):
+    
+    # Prepare the row with the serialized data
+    row = {
+        'batch_results': json.dumps(batch_results),   # Convert list of dicts to a string
+        'batch_index': int(batch_index) if batch_index is not None else None,  # Keep as integer
+        'batches_info': json.dumps(batches_info) if batches_info is not None else None,  # Convert list of tuples to string
+        'batch_paragon': json.dumps(batch_paragon) if batch_paragon is not None else None  # Convert to string
+    }
+    
+    # Convert the row to a DataFrame to write to CSV
+    df = pd.DataFrame([row])
+
+    # Append the new row to the CSV file
+    if not os.path.isfile(output_csv_file):
+        df.to_csv(output_csv_file, index=False)
+    else:
+        df.to_csv(output_csv_file, mode='a', header=False, index=False)
+
 
 async def process_model(
     model_name: str,
@@ -203,7 +227,8 @@ async def process_model(
     n_batches = len(batches)
     results = []
 
-    csv_filename =_save_results(model_name=model_name, ranking_window=ranking_window)
+    csv_filename =_save_results(model_name=model_name, ranking_window=ranking_window, results_dir="results")
+    csv_filename_Transitivity =_save_results(model_name=model_name, ranking_window=ranking_window, results_dir="transitivity_result")
 
     print(f"Starting processing with model {model_name}...")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -237,6 +262,9 @@ async def process_model(
             batch_size=batch_size,
             max_new_tokens=50
         )
+
+        
+        _save_batch_results_to_csv(batch_results, csv_filename_Transitivity, batch_index=batch_idx)
 
         transitivity = transitivity_check(rankings=batch_results)
 

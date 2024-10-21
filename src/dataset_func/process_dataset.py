@@ -123,7 +123,7 @@ def _balance_categories(df: pd.DataFrame, random_seed: int = 42) -> pd.DataFrame
     category_counts = df['listed_in'].value_counts()
     
     # Find the median count
-    median_count = int(category_counts.median())
+    median_count = int(category_counts.median()*0.7)
     
     # List to store DataFrames
     balanced_df_list = []
