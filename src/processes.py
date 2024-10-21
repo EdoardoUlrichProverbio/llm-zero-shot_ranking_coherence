@@ -5,6 +5,7 @@ from typing import List, Tuple, Dict
 import asyncio
 import torch
 import csv
+import ast
 import os
 
 
@@ -127,10 +128,11 @@ async def process_model(
             indices, descriptions = zip(*combination)
 
             # Construct the prompt for the model
-            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. Return the result as a dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
+            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. 
+            Return the result as a dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
             for idx, desc in enumerate(descriptions):
-                prompt += f"Description {indices[idx] +1 }: {desc}\n"
-            prompt += "\nReturn the rankings in the following format: {index_of_description: rank_of_description}."
+                prompt += f"{indices[idx] +1 }: {desc}\n"
+            prompt += "\nReturn the rankings in the following format: \{index_of_description\}: \{rank_of_description}."
 
             # Tokenize and process the prompt with the model
             inputs = tokenizer([prompt], return_tensors="pt", padding=False, truncation=True).to(device)
@@ -140,9 +142,9 @@ async def process_model(
                     max_new_tokens=50,    # Maximum number of tokens to generate
                     do_sample=False       # Disable sampling for deterministic results
                 )
-            batch_results = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            batch_results.extend({indices:batch_results})
-            print({indices:batch_results})
+            batch_result = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            batch_results.extend({ast.literal_eval(batch_result)})
+            print(ast.literal_eval(batch_result))
 
         transitivity = transitivity_check(rankings=batch_results)
 
