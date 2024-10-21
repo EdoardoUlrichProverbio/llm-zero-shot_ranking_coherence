@@ -2,6 +2,7 @@
 
 import os
 import pandas as pd
+import numpy as np
 import random
 from typing import Tuple, List, Dict
 from collections import Counter
@@ -105,44 +106,46 @@ def _retrieve_dataset(dataset_dir: str) -> str:
 
     return csv_file
 
-
-def _balance_categories(df: pd.DataFrame, random_seed: int = 42, max_drop_fraction: float = 0.7) -> pd.DataFrame:
+def _balance_categories(df: pd.DataFrame, random_seed: int = 42) -> pd.DataFrame:
     """
-    Reduce the imbalance by aggressively dropping rows from over-represented categories.
+    Balance categories by downsampling over-represented categories to the median count.
 
     Args:
         df (pd.DataFrame): The DataFrame to balance.
         random_seed (int): Seed for random operations to ensure reproducibility.
-        max_drop_fraction (float): Maximum fraction of rows to drop from over-represented categories. A higher value
-                                   will result in more aggressive balancing.
 
     Returns:
         pd.DataFrame: The balanced DataFrame.
     """
-    random.seed(random_seed)
-
+    np.random.seed(random_seed)
+    
     # Get category counts
     category_counts = df['listed_in'].value_counts()
-
-    # Find the median count to determine over-representation
-    median_count = category_counts.median()
-
-    # For each category that is over-represented, randomly drop more rows
-    for category, count in category_counts.items():
-        if count > median_count:
-            # Calculate how many rows to drop, using max_drop_fraction to drop more rows aggressively
-            drop_count = int((count - median_count) * max_drop_fraction)
-            
-            # Get the indices of the rows with the over-represented category
-            category_indices = df[df['listed_in'] == category].index
-            
-            # Randomly select some of these rows to drop
-            drop_indices = random.sample(list(category_indices), drop_count)
-            
-            # Drop the rows
-            df = df.drop(drop_indices)
     
-    return df
+    # Find the median count
+    median_count = int(category_counts.median())
+    
+    # List to store DataFrames
+    balanced_df_list = []
+    
+    # Process each category
+    for category in category_counts.index:
+        category_df = df[df['listed_in'] == category]
+        current_count = len(category_df)
+        
+        if current_count > median_count:
+            # Downsample to median count
+            category_df = category_df.sample(n=median_count, random_state=random_seed)
+        
+        # Append the (sampled) category DataFrame to the list
+        balanced_df_list.append(category_df)
+    
+    # Concatenate all categories into a single DataFrame
+    balanced_df = pd.concat(balanced_df_list).reset_index(drop=True)
+    
+    return balanced_df
+
+
 
 def process_dataset(dataset_dir: str, seed: int) -> Tuple[pd.DataFrame, Dict[str, int]]:
     """

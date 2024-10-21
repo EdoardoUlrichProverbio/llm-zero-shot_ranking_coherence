@@ -15,6 +15,9 @@ def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
     # Load the tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name)
 
+    # Set padding side to 'left' for decoder-only models
+    tokenizer.padding_side = 'left'
+
     # Check if the tokenizer has a pad_token; if not, assign one
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
