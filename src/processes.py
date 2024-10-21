@@ -81,6 +81,101 @@ def transitivity_check(rankings: List[Dict[int, int]]):
     return 0  # No violations detected
 
 
+def construct_prompts(
+    batch_combinations: List[List[Tuple[int, str]]],
+    batch_paragon: str
+) -> List[str]:
+    """
+    Constructs prompts for the given combinations of descriptions.
+    Args:
+        batch_combinations (List[List[Tuple[int, str]]]): List of combinations, where each combination is a list of (index, description) tuples.
+        batch_paragon (str): The genre or paragon to compare against.
+    Returns:
+        List[str]: A list of constructed prompts.
+    """
+    prompts = []
+    example = """
+        "Genre: Mystery\n"
+        "Descriptions:\n"
+        "1: A detective solving a complex case.\n"
+        "2: A romantic tale in a small town.\n"
+        "3: An astronaut exploring space.\n"
+        "Output: {{1: 1, 2: 3, 3: 2}}"""
+    for combination in batch_combinations:
+        # Unpack indices and descriptions
+        indices, descriptions = zip(*combination)
+
+        # Use a list to accumulate prompt components
+        prompt_lines = [
+            f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. ",
+            "Return the result as a single dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
+        ]
+        # Add each description with its index
+        prompt_lines.extend(f"{indices[idx] + 1}: {desc}\n" for idx, desc in enumerate(descriptions))
+        # Conclude the prompt with the expected format
+        prompt_lines.append("\nReturn the rankings in the following format: {index_of_description: rank_of_description}.")
+        prompt_lines.append("example: {example}")
+        prompt_lines.append("Output:")
+
+        # Join all components into a single string
+        prompt = '\n'.join(prompt_lines)
+        prompts.append(prompt)
+    return prompts
+
+
+
+def _process_prompts_in_batches(
+    prompts: List[str],
+    tokenizer: PreTrainedTokenizer,
+    model: PreTrainedModel,
+    device: torch.device,
+    batch_size: int = 16,
+    max_new_tokens: int = 50
+) -> List[Dict[int, int]]:
+    """
+    Processes the prompts in batches and returns the parsed results.
+    Args:
+        prompts (List[str]): List of prompts to process.
+        tokenizer (PreTrainedTokenizer): The tokenizer used to tokenize the prompts.
+        model (PreTrainedModel): The model used for inference.
+        device (torch.device): The device to run the model on.
+        batch_size (int, optional): Number of prompts to process in each batch. Defaults to 16.
+        max_new_tokens (int, optional): Maximum number of tokens to generate. Defaults to 50.
+    Returns:
+        List[Dict[int, int]]: A list of parsed results from the model output.
+    """
+    results = []
+    for i in range(0, len(prompts), batch_size):
+        batch_prompts = prompts[i:i+batch_size]
+
+        # Tokenize and process prompts in batch
+        inputs = tokenizer(
+            batch_prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True
+        ).to(device)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False
+            )
+        batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+        # Parse and store results
+        for output in batch_outputs:
+            try:
+                parsed_result = ast.literal_eval(output)
+                results.append(parsed_result)
+            except Exception as e:
+                print(f"Error parsing result: {output}\nException: {e}")
+
+    return results
+
+
+
 async def process_model(
     model_name: str,
     model: PreTrainedModel,
@@ -111,39 +206,37 @@ async def process_model(
     csv_filename =_save_results(model_name=model_name, ranking_window=ranking_window)
 
     print(f"Starting processing with model {model_name}...")
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     for batch_idx, batch in enumerate(batches):
-        print(f"batch: {batch_idx}")
-        batch_results = []
+        print(f"Processing batch: {batch_idx}")
         batch_paragon = batches_paragon[batch_idx]
 
-        # Assign a fixed index to each description in the batch
+        # Assign indices to descriptions
         indexed_descriptions = {i: desc for i, desc in enumerate(batch)}
 
-        # Create all combinations of indexed descriptions of size ranking_window
+        # Generate all combinations of descriptions of size 'ranking_window'
+        ranking_window = 3  # Example value
         all_combinations = list(combinations(indexed_descriptions.items(), ranking_window))
 
-        for combination in all_combinations:
-            # Unpack the indices and descriptions for each combination
-            indices, descriptions = zip(*combination)
+        # Calculate dynamic batch size
+        total_combinations = len(all_combinations)
+        batch_size = max(int(total_combinations / 2), 1)
+        max_batch_size = 40  # Set an upper limit if needed
+        batch_size = min(batch_size, max_batch_size)
 
-            # Construct the prompt for the model
-            prompt = f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. Return the result as a dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
-            for idx, desc in enumerate(descriptions):
-                prompt += f"{indices[idx] +1 }: {desc}\n"
-            prompt += "\nReturn the rankings in the following format: \{index_of_description\}: \{rank_of_description}."
+        # Construct prompts for all combinations
+        prompts = _construct_prompts(all_combinations, batch_paragon)
 
-            # Tokenize and process the prompt with the model
-            inputs = tokenizer([prompt], return_tensors="pt", padding=False, truncation=True).to(device)
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=50,    # Maximum number of tokens to generate
-                    do_sample=False       # Disable sampling for deterministic results
-                )
-            batch_result = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            batch_results.extend({ast.literal_eval(batch_result)})
-            print(ast.literal_eval(batch_result))
+        # Process prompts in batches and get results
+        batch_results = _process_prompts_in_batches(
+            prompts,
+            tokenizer,
+            model,
+            device,
+            batch_size=batch_size,
+            max_new_tokens=50
+        )
 
         transitivity = transitivity_check(rankings=batch_results)
 

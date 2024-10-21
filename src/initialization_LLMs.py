@@ -1,34 +1,33 @@
 import torch
 from typing import List, Dict, Tuple
-from transformers import AutoTokenizer, AutoModelForCausalLM#, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM  #, BitsAndBytesConfig
 from transformers import PreTrainedTokenizer, PreTrainedModel
+
 
 def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
     """
-    Load a model and tokenizer with proper padding token handling.
+    Load a model and tokenizer with proper padding token handling, using half-precision.
     Args:
         model_name (str): Name of the model to load.
     Returns:
-        tokenizer, model: The tokenizer and model loaded.
+        tokenizer, model: The tokenizer and half-precision model loaded.
     """
-    print(f"Loading model {model_name}...")
-
     # Load the tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name)
 
     # Check if the tokenizer has a pad_token; if not, assign one
     if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token  
+        tokenizer.pad_token = tokenizer.eos_token
 
-    # Load the model
+    # Load the model in half-precision
     model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float16, 
-        device_map="auto"  # Automatically map model to available devices (GPU/CPU)
+        torch_dtype=torch.float16,
+        device_map="auto"
     )
-    
-    print(f"Loaded model: {model_name}")
-    
+
+    print(f"Loaded model in half-precision: {model_name}")
+
     return tokenizer, model
 
 

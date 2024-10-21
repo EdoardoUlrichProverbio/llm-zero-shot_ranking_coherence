@@ -105,30 +105,32 @@ def _retrieve_dataset(dataset_dir: str) -> str:
 
     return csv_file
 
-def _balance_categories(df: pd.DataFrame, random_seed: int = 42, max_drop_fraction: float = 0.5) -> pd.DataFrame:
+
+def _balance_categories(df: pd.DataFrame, random_seed: int = 42, max_drop_fraction: float = 0.7) -> pd.DataFrame:
     """
-    Reduce the imbalance by randomly dropping rows from over-represented categories.
+    Reduce the imbalance by aggressively dropping rows from over-represented categories.
 
     Args:
         df (pd.DataFrame): The DataFrame to balance.
         random_seed (int): Seed for random operations to ensure reproducibility.
-        max_drop_fraction (float): Maximum fraction of rows to drop from over-represented categories.
+        max_drop_fraction (float): Maximum fraction of rows to drop from over-represented categories. A higher value
+                                   will result in more aggressive balancing.
 
     Returns:
         pd.DataFrame: The balanced DataFrame.
     """
     random.seed(random_seed)
-    
+
     # Get category counts
     category_counts = df['listed_in'].value_counts()
 
     # Find the median count to determine over-representation
     median_count = category_counts.median()
 
-    # For each category that is over-represented, randomly drop some rows
+    # For each category that is over-represented, randomly drop more rows
     for category, count in category_counts.items():
         if count > median_count:
-            # Calculate how many rows to drop, using max_drop_fraction to avoid excessive dropping
+            # Calculate how many rows to drop, using max_drop_fraction to drop more rows aggressively
             drop_count = int((count - median_count) * max_drop_fraction)
             
             # Get the indices of the rows with the over-represented category
