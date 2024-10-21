@@ -1,5 +1,4 @@
-# load_model.py
-
+import torch
 from typing import List, Dict, Tuple
 from transformers import AutoTokenizer, AutoModelForCausalLM#, BitsAndBytesConfig
 from transformers import PreTrainedTokenizer, PreTrainedModel
@@ -19,15 +18,12 @@ def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
 
     # Check if the tokenizer has a pad_token; if not, assign one
     if tokenizer.pad_token is None:
-        print("Tokenizer does not have a pad_token. Setting pad_token to eos_token.")
-        tokenizer.pad_token = tokenizer.eos_token  # Option 1: Use eos_token as pad_token
-        # Option 2: Add a special padding token (uncomment the next two lines for this approach)
-        # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        # model.resize_token_embeddings(len(tokenizer))  # Resize model embeddings if a new token is added
+        tokenizer.pad_token = tokenizer.eos_token  
 
     # Load the model
     model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
         model_name,
+        torch_dtype=torch.float16, 
         device_map="auto"  # Automatically map model to available devices (GPU/CPU)
     )
     
