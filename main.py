@@ -1,4 +1,6 @@
+import gc 
 import asyncio
+
 from src.initialization_LLMs import load_all_models
 from src.processes import process_model
 from src.dataset_func.load_dataset import load_dataset
@@ -11,11 +13,12 @@ from src.resources.model_names import model_names
 BATCH_SIZE = 8
 SEED = 42
 RANKING_WINDOW = 2
-MODEL_BATCH = 1  # This controls how many models run concurrently (set to 1 for sequential execution)
+MODEL_BATCH = 1  # Number of models to process in parallel (batch mode)
 
 BATCH_PREPARATION = True
 MODEL_LOADING = True
 ANALYSIS = True
+RUN_MODE = 'single'  # 'single' for single model mode, 'batch' for batch mode
 
 #######################################################
 
@@ -27,7 +30,7 @@ if __name__ == "__main__":
 
         # Process the dataset and get the DataFrame
         try:
-            processed_dataset, genre_occurrencies = process_dataset(dataset_dir, seed=SEED)
+            processed_dataset, genre_occurrences = process_dataset(dataset_dir, seed=SEED)
         except (FileNotFoundError, ValueError) as e:
             print(f"Error processing dataset: {e}")
             exit(1)
@@ -42,12 +45,13 @@ if __name__ == "__main__":
 
         if MODEL_LOADING:
             tasks = []
-            semaphore = asyncio.Semaphore(MODEL_BATCH)  # Controls concurrent execution (1 at a time here)
+            semaphore = asyncio.Semaphore(MODEL_BATCH)  # Controls concurrent execution
 
             async def limited_process_model(model_name, model, tokenizer):
-                async with semaphore:  # Ensures limited concurrent execution
+                async with semaphore:
                     try:
-                        result = await process_model(
+                        # Schedule the processing task for each model
+                        return await process_model(
                             model_name=model_name,
                             model=model,
                             tokenizer=tokenizer,
@@ -56,28 +60,60 @@ if __name__ == "__main__":
                             batches_paragon=batches_paragon,
                             ranking_window=RANKING_WINDOW
                         )
-                        return result
                     except Exception as e:
                         print(f"Error processing model {model_name}: {e}")
                         return None
 
-            # Iterate over each model, loading and processing them one by one
-            for model_name in model_names:
-                # Load model and tokenizer
-                tokenizers, models = load_all_models([model_name])  # Load a single model at a time
-                tokenizer = tokenizers[model_name]
-                model = models[model_name]
+            if RUN_MODE == 'single':
+                # Single model mode: Load and process one model at a time
+                for model_name in model_names:
+                    # Load the model and tokenizer for the current model
+                    tokenizers, models = load_all_models([model_name])
+                    tokenizer = tokenizers[model_name]
+                    model = models[model_name]
 
-                # Schedule the task using the semaphore
-                task = limited_process_model(model_name=model_name, model=model, tokenizer=tokenizer)
-                tasks.append(task)
+                    # Schedule the processing task using the semaphore
+                    task = limited_process_model(model_name=model_name, model=model, tokenizer=tokenizer)
+                    tasks.append(task)
 
-            # Run all tasks sequentially (or limited to MODEL_BATCH at a time)
+                    # Run tasks for the current model (since MODEL_BATCH = 1, one at a time)
+                    await asyncio.gather(*tasks)
+                    # Free memory after the model is processed
+                    del tokenizer, model, tokenizers, models
+                    gc.collect()  # Trigger garbage collection
+                    tasks = []
+
+            elif RUN_MODE == 'batch':
+                # Batch mode: Process models in batches
+                model_batches = [model_names[i:i + MODEL_BATCH] for i in range(0, len(model_names), MODEL_BATCH)]
+
+                # Process each batch of models
+                for batch in model_batches:
+                    # Load models for the current batch
+                    tokenizers, models = load_all_models(batch)
+
+                    # Process each model in the current batch
+                    for model_name in batch:
+                        tokenizer = tokenizers[model_name]
+                        model = models[model_name]
+
+                        # Schedule the processing task using the semaphore
+                        task = limited_process_model(model_name=model_name, model=model, tokenizer=tokenizer)
+                        tasks.append(task)
+                
+                    # Run tasks for the current batch
+                    await asyncio.gather(*tasks)
+                    # Free memory after the model is processed
+                    del tokenizer, model, tokenizers, models
+                    gc.collect()  # Trigger garbage collection
+                    tasks = []
+
+            # Run all tasks concurrently, but limited to MODEL_BATCH at a time
             all_results = await asyncio.gather(*tasks)
 
         if ANALYSIS:
             # Perform result analysis if enabled
-            perform_result_analysis(genre_occurrences=genre_occurrencies)
+            perform_result_analysis(genre_occurrences=genre_occurrences)
 
         print("All results have been saved.")
 

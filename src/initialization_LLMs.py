@@ -1,6 +1,6 @@
 # load_model.py
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedTokenizer, PreTrainedModel
 
 
@@ -26,7 +26,7 @@ def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
 
 
 
-def load_all_models(model_names: List[str]) -> Tuple[Dict[str, PreTrainedTokenizer], Dict[str, PreTrainedModel]]:
+def load_all_models(model_names: Union[List[str]|str]) -> Tuple[Dict[str, PreTrainedTokenizer], Dict[str, PreTrainedModel]]:
     """
     Load all models specified in the model_names list.
 
@@ -39,10 +39,15 @@ def load_all_models(model_names: List[str]) -> Tuple[Dict[str, PreTrainedTokeniz
     tokenizers: Dict[str, PreTrainedTokenizer] = {}
     models: Dict[str, PreTrainedModel] = {}
 
-    for model_name in model_names:
+    if isinstance(model_names, List[str]):
+        for model_name in model_names:
+            tokenizer, model = load_model(model_name)
+            tokenizers[model_name] = tokenizer
+            models[model_name] = model
+    else: 
         tokenizer, model = load_model(model_name)
         tokenizers[model_name] = tokenizer
         models[model_name] = model
-        
+
     print("All models have been loaded with 8-bit quantization.")
     return tokenizers, models
