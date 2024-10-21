@@ -81,7 +81,7 @@ def transitivity_check(rankings: List[Dict[int, int]]):
     return 0  # No violations detected
 
 
-def construct_prompts(
+def _construct_prompts(
     batch_combinations: List[List[Tuple[int, str]]],
     batch_paragon: str
 ) -> List[str]:
