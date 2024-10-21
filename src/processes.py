@@ -143,7 +143,7 @@ async def process_model(
             batch_results = tokenizer.batch_decode(outputs, skip_special_tokens=True)
             batch_results.extend({indices:batch_results})
 
-        transitivity = transitivity_check()
+        transitivity = transitivity_check(rankings=batch_results)
 
         batch_genres = [genre for _, genre in batches_info[batch_idx]] 
         _update_results(csv_filename=csv_filename, batch=batch, batch_genres=batch_genres,
