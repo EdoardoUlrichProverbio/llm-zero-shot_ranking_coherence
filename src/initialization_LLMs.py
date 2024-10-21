@@ -1,10 +1,8 @@
 # load_model.py
 
 from typing import List, Dict, Tuple
-from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedTokenizer, PreTrainedModel
-
-
-
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import PreTrainedTokenizer, PreTrainedModel
 
 def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
     """
@@ -14,16 +12,24 @@ def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
     Returns:
         tokenizer, model: The tokenizer and model loaded.
     """
+    # Create a quantization config to replace deprecated load_in_8bit
+    quantization_config = BitsAndBytesConfig(
+        load_in_8bit=True  # or load_in_4bit=True if you want 4-bit quantization
+    )
 
     print(f"Loading model {model_name}...")
+
+    # Load the tokenizer
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    # Load the model using the quantization config
     model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
         model_name,
-        load_in_8bit=True,         # Set quantization to 8 bits
-        device_map="auto"          # Automatically map model to available devices
+        quantization_config=quantization_config,  # Pass the quantization config
+        device_map="auto"  # Automatically map the model to available devices (GPU/CPU)
     )
-    return tokenizer, model
 
+    return tokenizer, model
 
 
 def load_all_models(model_names: List[str]) -> Tuple[Dict[str, PreTrainedTokenizer], Dict[str, PreTrainedModel]]:
