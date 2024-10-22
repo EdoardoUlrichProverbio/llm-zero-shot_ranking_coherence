@@ -165,7 +165,7 @@ def _process_prompts_in_batches(
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
                 temperature=0.0,
-                repetition_penalty=1.2,
+                no_repeat_ngram_size=2,
                 eos_token_id=tokenizer.eos_token_id,
                 pad_token_id=tokenizer.eos_token_id
             )
