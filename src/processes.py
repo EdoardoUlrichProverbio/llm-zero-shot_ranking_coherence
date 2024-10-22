@@ -109,9 +109,9 @@ def _construct_prompts(
         f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. \n",
     ]
     # Add each description with its index
-    prompt_lines.append('\n\n"-"'.join(descriptions))
+    prompt_lines.append('\n\n'.join(descriptions))
     # Conclude the prompt with the expected format
-    prompt_lines.append("\nReturn a list of ranked indices from most to least similar.")
+    prompt_lines.append("\nReturn a list of the numerical indices from most to least similar description.")
     prompt_lines.append("Output:")
     # Join all components into a single string
     prompt = '\n'.join(prompt_lines)
@@ -159,6 +159,8 @@ def _process_prompts_in_batches(
                 do_sample=False
             )
         batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+        print(batch_outputs)
 
         # Parse and store results
         for output in batch_outputs:
