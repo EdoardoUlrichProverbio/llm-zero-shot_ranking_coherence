@@ -116,7 +116,7 @@ def _construct_prompts(
 
 
     # Conclude the prompt with the expected format
-    prompt_lines.append(f"\nThe ranking result of the {ranking_window} descriptions (only identifiers) is: ")
+    prompt_lines.append(f"\nThe ranking result of the {ranking_window} descriptions (only the numerical identifiers) is: ")
 
     # Combine everything into the final prompt string
     final_prompt = '\n'.join(prompt_lines)
