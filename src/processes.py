@@ -110,12 +110,10 @@ def _construct_prompts(
         f"The following are {ranking_window} movie descriptions, each indicated by a number identifier []. I can rank them based on their relevance to the genre: {batch_paragon}."
     ]
 
-    # Ensure that the descriptions are a valid list
-    if descriptions and isinstance(descriptions, list):
-        # Add each description with its index
-        prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
-    else:
-        raise ValueError("The 'descriptions' variable must be a list of strings.")
+
+    # Add each description with its index
+    prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
+
 
     # Conclude the prompt with the expected format
     prompt_lines.append(f"\nThe ranking result of the {ranking_window} descriptions (only identifiers) is: ")
