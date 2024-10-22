@@ -147,11 +147,10 @@ def _process_prompts_in_batches(
         List[Dict[int, int]]: A list of parsed results from the model output.
     """
     results = []
-    print(prompts)
 
     for i in range(0, len(prompts), batch_size):
         batch_prompts = prompts[i:i+batch_size]
-        print(batch_prompts)
+
         # Tokenize and process prompts in batch
         inputs = tokenizer(
             batch_prompts,
@@ -168,7 +167,9 @@ def _process_prompts_in_batches(
             )
         batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-        print(batch_outputs)
+        print(batch_outputs[0])
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        print(batch_outputs[5])
         exit(1)
         # Parse and store results
         for output in batch_outputs:
