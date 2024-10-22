@@ -105,20 +105,23 @@ def _construct_prompts(
         indices, descriptions = zip(*combination)
         batch_indices.append(indices)
 
-    # Use a list to accumulate prompt components
-    prompt_lines = [
-        f"The following are {ranking_window} movie descriptions, each indicated by a number identifier []. I can rank them based on their relevance to the genre: {batch_paragon}."
-    ]
-    # Add each description with its index
-    prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
-    # Conclude the prompt with the expected format
-    #prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (returning ONLY the numerical identifiers) is: ")
-    prompt_lines.append(f"Reorder their identifiers from the most to the least relevant: ")
+        # Use a list to accumulate prompt components
+        prompt_lines = [
+            f"The following are {ranking_window} movie descriptions, each indicated by a number identifier []. I can rank them based on their relevance to the genre: {batch_paragon}."
+        ]
+        # Add each description with its index
+        prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
+        # Conclude the prompt with the expected format
+        #prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (returning ONLY the numerical identifiers) is: ")
+        prompt_lines.append(f"Reorder their identifiers from the most to the least relevant: ")
 
-    # Combine everything into the final prompt string
-    final_prompt = '\n'.join(prompt_lines)
+        # Combine everything into the final prompt string
+        final_prompt = '\n'.join(prompt_lines)
 
-    prompts.append(final_prompt)
+        prompts.append(final_prompt)
+
+
+
     return prompts, batch_indices
 
 
