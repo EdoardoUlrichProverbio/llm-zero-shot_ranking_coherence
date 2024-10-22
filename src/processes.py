@@ -258,13 +258,13 @@ async def process_model(
         prompts, batch_indices = _construct_prompts(batch_combinations=all_combinations,
                                                     batch_paragon= batch_paragon, ranking_window = ranking_window)
 
-
+        print(prompts)
         # Process prompts in batches and get results
         batch_results = _process_prompts_in_batches(
-            prompts,
-            tokenizer,
-            model,
-            device,
+            prompts=prompts,
+            tokenizer=tokenizer,
+            model=model,
+            device=device,
             batch_size=batch_size,
             max_new_tokens=50
         )
