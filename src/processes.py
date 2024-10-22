@@ -106,17 +106,16 @@ def _construct_prompts(
         batch_indices.append(indices)
 
         # Use a list to accumulate prompt components
+        # Build the prompt
         prompt_lines = [
-            f"The following are {ranking_window} movie descriptions, each indicated by a number identifier []."
+            f"The following are {ranking_window} movie descriptions, each indicated by a number identifier [].",
+            '\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]),
+            f"Based on their relevance to the genre '{batch_paragon}', list their identifiers in order from most to least relevant.",
+            "Return only the numbers, separated by commas (e.g., '2, 1, 3'). Do not include any explanations or descriptions."
         ]
-        # Add each description with its index
-        prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
-        # Conclude the prompt with the expected format
-        #prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (returning ONLY the numerical identifiers) is: ")
-        prompt_lines.append(f"Reorder their identifiers from the most to the least relevant to genre:{batch_paragon}, and **return only the identifiers []** in the final answer (without the descriptions): ")
 
-        # Combine everything into the final prompt string
-        final_prompt = '\n'.join(prompt_lines)
+        # Combine the prompt
+        final_prompt = '\n\n'.join(prompt_lines)
 
         prompts.append(final_prompt)
 
@@ -163,9 +162,12 @@ def _process_prompts_in_batches(
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=max_new_tokens,
-                no_repeat_ngram_size=2,
-                do_sample=False
+                max_new_tokens=50,
+                do_sample=False,
+                temperature=0.0,
+                repetition_penalty=1.2,
+                eos_token_id=tokenizer.eos_token_id,
+                pad_token_id=tokenizer.eos_token_id
             )
         batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
