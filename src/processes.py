@@ -132,7 +132,7 @@ def _process_prompts_in_batches(
     model: PreTrainedModel,
     device: torch.device,
     batch_size: int,
-    max_new_tokens: int = 200
+    max_new_tokens: int = 50
 ) -> List[Dict[int, int]]:
     """
     Processes the prompts in batches and returns the parsed results.
@@ -169,7 +169,11 @@ def _process_prompts_in_batches(
 
         print(batch_outputs[0])
         print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        print(batch_outputs[5])
+        print(batch_outputs[3])
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        print(batch_outputs[11])
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+        print(batch_outputs[17])
         exit(1)
         # Parse and store results
         for output in batch_outputs:
