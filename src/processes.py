@@ -109,14 +109,10 @@ def _construct_prompts(
     prompt_lines = [
         f"The following are {ranking_window} movie descriptions, each indicated by a number identifier []. I can rank them based on their relevance to the genre: {batch_paragon}."
     ]
-
-
     # Add each description with its index
     prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
-
-
     # Conclude the prompt with the expected format
-    prompt_lines.append(f"\nThe ranking result of the {ranking_window} descriptions (only the numerical identifiers) is: ")
+    prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (returning ONLY the numerical identifiers) is: ")
 
     # Combine everything into the final prompt string
     final_prompt = '\n'.join(prompt_lines)
@@ -132,7 +128,7 @@ def _process_prompts_in_batches(
     model: PreTrainedModel,
     device: torch.device,
     batch_size: int = 16,
-    max_new_tokens: int = 50
+    max_new_tokens: int = 100
 ) -> List[Dict[int, int]]:
     """
     Processes the prompts in batches and returns the parsed results.
