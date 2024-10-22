@@ -121,7 +121,6 @@ def _construct_prompts(
     # Combine everything into the final prompt string
     final_prompt = '\n'.join(prompt_lines)
 
-    print(final_prompt)  # To verify the final prompt output
     prompts.append(final_prompt)
     return prompts, batch_indices
 
@@ -276,6 +275,9 @@ async def process_model(
         print("BBBBBBBBBBB")
         print("BBBBBBBBBBB")
         print(batch_results)
+        print("KKKKKKKKKKKK")
+        print("KKKKKKKKKKKK")
+        print("KKKKKKKKKKKK")
 
         batch_results = convert_to_dict_list(batch_indices=batch_indices, batch_results=batch_results)
 
