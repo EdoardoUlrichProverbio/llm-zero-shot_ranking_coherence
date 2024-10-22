@@ -157,6 +157,7 @@ def _process_prompts_in_batches(
             batch_prompts,
             return_tensors="pt",
             truncation=True,
+            padding = True,
             max_length=tokenizer.model_max_length
         ).to(device)
 
@@ -244,7 +245,7 @@ async def process_model(
     csv_filename_Transitivity =_save_results(model_name=model_name, ranking_window=ranking_window, results_dir="transitivity_result")
 
     print(f"Starting processing with model {model_name}...")
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     for batch_idx, batch in enumerate(batches):
         print(f"Processing batch: {batch_idx}")
