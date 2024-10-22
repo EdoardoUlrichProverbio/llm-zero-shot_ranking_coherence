@@ -114,6 +114,7 @@ def _construct_prompts(
         # Conclude the prompt with the expected format
         #prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (returning ONLY the numerical identifiers) is: ")
         prompt_lines.append(f"Reorder their identifiers from the most to the least relevant to genre:{batch_paragon}, and **return only the identifiers []** in the final answer (without the descriptions): ")
+        prompt_lines.append(f"For example, if the correct order is [2], [1], [3], you should return: 2, 1, 3.")
 
         # Combine everything into the final prompt string
         final_prompt = '\n'.join(prompt_lines)
@@ -132,7 +133,7 @@ def _process_prompts_in_batches(
     model: PreTrainedModel,
     device: torch.device,
     batch_size: int,
-    max_new_tokens: int = 50
+    max_new_tokens: int = 150
 ) -> List[Dict[int, int]]:
     """
     Processes the prompts in batches and returns the parsed results.
@@ -155,14 +156,15 @@ def _process_prompts_in_batches(
         inputs = tokenizer(
             batch_prompts,
             return_tensors="pt",
-            padding=True,
-            truncation=True
+            truncation=True,
+            max_length=tokenizer.model_max_length
         ).to(device)
 
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
                 max_new_tokens=max_new_tokens,
+                no_repeat_ngram_size=2,
                 do_sample=False
             )
         batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
