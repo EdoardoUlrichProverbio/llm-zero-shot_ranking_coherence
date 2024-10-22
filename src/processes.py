@@ -86,7 +86,8 @@ def transitivity_check(rankings: List[Dict[int, int]]):
 
 def _construct_prompts(
     batch_combinations: List[List[Tuple[int, str]]],
-    batch_paragon: str
+    batch_paragon: str,
+    ranking_window:int
 ) -> List[str]:
     """
     Constructs prompts for the given combinations of descriptions.
@@ -105,14 +106,12 @@ def _construct_prompts(
         batch_indices.append(indices)
 
     # Use a list to accumulate prompt components
-    prompt_lines = [
-        f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. \n",
-    ]
+    prompt_lines = [f"The following are {ranking_window} movie descriptions, each indicated by a number identifier []. I can rank them based on their relevance to the genre: {batch_paragon}"]
     # Add each description with its index
-    prompt_lines.append('\n\n'.join(descriptions))
+    prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
     # Conclude the prompt with the expected format
-    prompt_lines.append("\nReturn a list of the numerical indices from most to least similar description.")
-    prompt_lines.append("Output:")
+    prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (only identifiers) is: ")
+    
     # Join all components into a single string
     prompt = '\n'.join(prompt_lines)
     prompts.append(prompt)
@@ -249,7 +248,8 @@ async def process_model(
         batch_size = min(batch_size, max_batch_size)
 
         # Construct prompts for all combinations
-        prompts, batch_indices = _construct_prompts(all_combinations, batch_paragon)
+        prompts, batch_indices = _construct_prompts(batch_paragon=all_combinations,
+                                                    batch_paragon= batch_paragon, ranking_window = ranking_window)
 
         # Process prompts in batches and get results
         batch_results = _process_prompts_in_batches(
