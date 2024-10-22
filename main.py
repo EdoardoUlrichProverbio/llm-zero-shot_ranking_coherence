@@ -39,7 +39,7 @@ if __name__ == "__main__":
             batch_size=BATCH_SIZE, seed=SEED, df=processed_dataset
         )
         print(f" number of batches = {len(batches)}")
-        exit(1)
+        #exit(1)
 
     if MODEL_LOADING:
         if RUN_MODE == 'single':
