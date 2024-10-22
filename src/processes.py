@@ -40,7 +40,7 @@ def _save_results(model_name: str, ranking_window: str, results_dir:str) -> str:
 
 def _update_results(csv_filename:str, batch:List[str], batch_genres:List[str], batch_idx:int, transitivity_check:int):
         with open(csv_filename, mode='a', newline='') as file:
-            writer = csv.DictWriter(file, fieldnames=["batch_idx", "batch", "batch_genres","transitivity_violations"])
+            writer = csv.DictWriter(file, fieldnames=["batch_idx", "batch", "batch_genres","transitivity_check"])
             writer.writerow({"batch_idx": batch_idx, "batch": batch, "batch_genres": batch_genres, "transitivity_check": transitivity_check})
 
 
@@ -115,7 +115,7 @@ def _construct_prompts(
         prompt_lines.extend(f"{indices[idx] + 1}: {desc}\n" for idx, desc in enumerate(descriptions))
         # Conclude the prompt with the expected format
         prompt_lines.append("\nReturn the rankings in the following format: {index_of_description: rank_of_description}.")
-        prompt_lines.append("example: {example}")
+        prompt_lines.append(f"example: {example.strip()}")
         prompt_lines.append("Output:")
 
         # Join all components into a single string
