@@ -144,10 +144,11 @@ def _process_prompts_in_batches(
         List[Dict[int, int]]: A list of parsed results from the model output.
     """
     results = []
+    print(prompts)
+
     for i in range(0, len(prompts), batch_size):
         batch_prompts = prompts[i:i+batch_size]
         print(batch_prompts)
-
         # Tokenize and process prompts in batch
         inputs = tokenizer(
             batch_prompts,
@@ -253,11 +254,10 @@ async def process_model(
         batch_size = min(batch_size, max_batch_size)
 
         # Construct prompts for all combinations
-        print(all_combinations)
+ 
         prompts, batch_indices = _construct_prompts(batch_combinations=all_combinations,
                                                     batch_paragon= batch_paragon, ranking_window = ranking_window)
-        print(prompts)
-        print(batch_size)
+
 
         # Process prompts in batches and get results
         batch_results = _process_prompts_in_batches(
