@@ -113,7 +113,7 @@ def _construct_prompts(
         prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
         # Conclude the prompt with the expected format
         #prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (returning ONLY the numerical identifiers) is: ")
-        prompt_lines.append(f"Reorder their identifiers from the most to the least relevant, and **return only the numbers** in the final answer (without the descriptions). For example, if you think the order is [2], [1], [3], return just '2, 1, 3' and nothing else: ")
+        prompt_lines.append(f"Reorder their identifiers from the most to the least relevant, and **return only the numbers** in the final answer (without the descriptions). ")
 
         # Combine everything into the final prompt string
         final_prompt = '\n'.join(prompt_lines)
@@ -132,7 +132,7 @@ def _process_prompts_in_batches(
     model: PreTrainedModel,
     device: torch.device,
     batch_size: int,
-    max_new_tokens: int = 100
+    max_new_tokens: int = 200
 ) -> List[Dict[int, int]]:
     """
     Processes the prompts in batches and returns the parsed results.
