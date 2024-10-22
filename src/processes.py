@@ -128,7 +128,7 @@ def _process_prompts_in_batches(
     tokenizer: PreTrainedTokenizer,
     model: PreTrainedModel,
     device: torch.device,
-    batch_size: int = 16,
+    batch_size: int,
     max_new_tokens: int = 100
 ) -> List[Dict[int, int]]:
     """
@@ -267,10 +267,6 @@ async def process_model(
         print("AAAAAAAAAAA")
         print("AAAAAAAAAAA")
         print("AAAAAAAAAAA")
-        print(batch_indices)
-        print("BBBBBBBBBBB")
-        print("BBBBBBBBBBB")
-        print("BBBBBBBBBBB")
         print(batch_results)
         print("KKKKKKKKKKKK")
         print("KKKKKKKKKKKK")
