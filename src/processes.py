@@ -104,18 +104,18 @@ def _construct_prompts(
         indices, descriptions = zip(*combination)
         batch_indices.append(indices)
 
-        # Use a list to accumulate prompt components
-        prompt_lines = [
-            f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. \n\n",
-        ]
-        # Add each description with its index
-        prompt_lines.append('\n'.join(descriptions))
-        # Conclude the prompt with the expected format
-        prompt_lines.append("\n Return the list of the rankings. \n")
-        prompt_lines.append("Output:")
-        # Join all components into a single string
-        prompt = '\n'.join(prompt_lines)
-        prompts.append(prompt)
+    # Use a list to accumulate prompt components
+    prompt_lines = [
+        f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. \n",
+    ]
+    # Add each description with its index
+    prompt_lines.append('\n\n"-"'.join(descriptions))
+    # Conclude the prompt with the expected format
+    prompt_lines.append("\nReturn a list of ranked indices from most to least similar.")
+    prompt_lines.append("Output:")
+    # Join all components into a single string
+    prompt = '\n'.join(prompt_lines)
+    prompts.append(prompt)
     return prompts, batch_indices
 
 
