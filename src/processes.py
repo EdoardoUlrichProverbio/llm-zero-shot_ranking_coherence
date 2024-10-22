@@ -176,7 +176,7 @@ def _process_prompts_in_batches(
     return results
 
 
-def _save_batch_results_to_csv(batch_results: list[dict[int, int]], 
+def _save_batch_results_to_csv(batch_results: List[Dict[int, int]], 
                                output_csv_file, 
                                batch_index=None,
                                batches_info=None,
