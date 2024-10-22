@@ -162,7 +162,7 @@ def _process_prompts_in_batches(
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=50,
+                max_new_tokens=max_new_tokens,
                 do_sample=False,
                 temperature=0.0,
                 repetition_penalty=1.2,
@@ -277,7 +277,6 @@ async def process_model(
             model=model,
             device=device,
             batch_size=batch_size,
-            max_new_tokens=50
         )
         print("AAAAAAAAAAA")
         print("AAAAAAAAAAA")
