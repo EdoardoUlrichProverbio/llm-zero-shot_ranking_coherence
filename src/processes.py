@@ -256,6 +256,8 @@ async def process_model(
         print(all_combinations)
         prompts, batch_indices = _construct_prompts(batch_combinations=all_combinations,
                                                     batch_paragon= batch_paragon, ranking_window = ranking_window)
+        print(prompts)
+        print(batch_size)
 
         # Process prompts in batches and get results
         batch_results = _process_prompts_in_batches(
