@@ -10,6 +10,8 @@ import csv
 import ast
 import os
 
+from src.utility import convert_to_dict_list
+
 
 def _save_results(model_name: str, ranking_window: str, results_dir:str) -> str:
     # Sanitize the model name to avoid special characters in filenames
@@ -95,33 +97,26 @@ def _construct_prompts(
         List[str]: A list of constructed prompts.
     """
     prompts = []
-    example = """
-        "Genre: Mystery\n"
-        "Descriptions:\n"
-        "1: A detective solving a complex case.\n"
-        "2: A romantic tale in a small town.\n"
-        "3: An astronaut exploring space.\n"
-        "Output: {{1: 1, 2: 3, 3: 2}}"""
+    batch_indices = []
+
     for combination in batch_combinations:
         # Unpack indices and descriptions
         indices, descriptions = zip(*combination)
+        batch_indices.append(indices)
 
         # Use a list to accumulate prompt components
         prompt_lines = [
-            f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. ",
-            "Return the result as a single dictionary where the keys are the indices of the descriptions and the values are their ranks (1 being most similar):\n"
+            f"Rank the following descriptions based on their similarity to the genre '{batch_paragon}'. \n\n",
         ]
         # Add each description with its index
-        prompt_lines.extend(f"{indices[idx] + 1}: {desc}\n" for idx, desc in enumerate(descriptions))
+        prompt_lines.append('\n'.join(descriptions))
         # Conclude the prompt with the expected format
-        prompt_lines.append("\nReturn the rankings in the following format: {index_of_description: rank_of_description}.")
-        prompt_lines.append(f"example: {example.strip()}")
+        prompt_lines.append("\n Return the list of the rankings. \n")
         prompt_lines.append("Output:")
-
         # Join all components into a single string
         prompt = '\n'.join(prompt_lines)
         prompts.append(prompt)
-    return prompts
+    return prompts, batch_indices
 
 
 
@@ -200,6 +195,7 @@ def _save_batch_results_to_csv(batch_results: List[Dict[int, int]],
         df.to_csv(output_csv_file, mode='a', header=False, index=False)
 
 
+
 async def process_model(
     model_name: str,
     model: PreTrainedModel,
@@ -251,7 +247,7 @@ async def process_model(
         batch_size = min(batch_size, max_batch_size)
 
         # Construct prompts for all combinations
-        prompts = _construct_prompts(all_combinations, batch_paragon)
+        prompts, batch_indices = _construct_prompts(all_combinations, batch_paragon)
 
         # Process prompts in batches and get results
         batch_results = _process_prompts_in_batches(
@@ -262,8 +258,17 @@ async def process_model(
             batch_size=batch_size,
             max_new_tokens=50
         )
+        print("AAAAAAAAAAA")
+        print("AAAAAAAAAAA")
+        print("AAAAAAAAAAA")
+        print(batch_indices)
+        print("BBBBBBBBBBB")
+        print("BBBBBBBBBBB")
+        print("BBBBBBBBBBB")
+        print(batch_results)
 
-        
+        batch_results = convert_to_dict_list(batch_indices=batch_indices, batch_results=batch_results)
+
         _save_batch_results_to_csv(batch_results, csv_filename_Transitivity, batch_index=batch_idx)
 
         transitivity = transitivity_check(rankings=batch_results)
