@@ -146,6 +146,7 @@ def _process_prompts_in_batches(
     results = []
     for i in range(0, len(prompts), batch_size):
         batch_prompts = prompts[i:i+batch_size]
+        print(batch_prompts)
 
         # Tokenize and process prompts in batch
         inputs = tokenizer(
@@ -164,7 +165,7 @@ def _process_prompts_in_batches(
         batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
         print(batch_outputs)
-
+        exit(1)
         # Parse and store results
         for output in batch_outputs:
             try:
