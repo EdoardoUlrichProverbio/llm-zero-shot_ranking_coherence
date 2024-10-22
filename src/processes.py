@@ -111,7 +111,7 @@ def _construct_prompts(
     prompt_lines.append('\n'.join([f'[{i + 1}] {desc}' for i, desc in enumerate(descriptions)]))
     # Conclude the prompt with the expected format
     prompt_lines.append(f"The ranking result of the {ranking_window} descriptions (only identifiers) is: ")
-    
+
     # Join all components into a single string
     prompt = '\n'.join(prompt_lines)
     prompts.append(prompt)
@@ -248,7 +248,7 @@ async def process_model(
         batch_size = min(batch_size, max_batch_size)
 
         # Construct prompts for all combinations
-        prompts, batch_indices = _construct_prompts(batch_paragon=all_combinations,
+        prompts, batch_indices = _construct_prompts(batch_combinations=all_combinations,
                                                     batch_paragon= batch_paragon, ranking_window = ranking_window)
 
         # Process prompts in batches and get results
