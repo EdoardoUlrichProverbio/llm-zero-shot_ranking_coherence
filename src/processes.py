@@ -253,6 +253,7 @@ async def process_model(
         batch_size = min(batch_size, max_batch_size)
 
         # Construct prompts for all combinations
+        print(all_combinations)
         prompts, batch_indices = _construct_prompts(batch_combinations=all_combinations,
                                                     batch_paragon= batch_paragon, ranking_window = ranking_window)
 
