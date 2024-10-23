@@ -6,3 +6,7 @@ numpy
 seaborn
 scikit-learn
 accelerate
+onnx    
+onnxruntime
+onnxruntime-tools
+onnxruntime-gpu
