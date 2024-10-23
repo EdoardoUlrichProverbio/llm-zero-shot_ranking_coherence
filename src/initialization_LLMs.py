@@ -39,68 +39,34 @@ from onnxconverter_common.float16 import convert_float_to_float16
 #    return tokenizer, model
 
 
-def load_model(model_name: str, quantization_type: str = "int8") -> Tuple[PreTrainedTokenizer, str]:
-    """
-    Load a model and tokenizer, export the model to ONNX format, and apply optional quantization.
-    
-    Args:
-        model_name (str): Name of the model to load.
-        quantization_type (str): Type of quantization to apply ('fp16' for float16 or 'int8' for int8 quantization).
-        
-    Returns:
-        tokenizer, onnx_file_path: The tokenizer and the path to the ONNX model.
-    """
+def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
+    from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM
+    from accelerate import init_empty_weights, load_checkpoint_and_dispatch
+    import torch
+
     # Load the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    
-    # Set padding side to 'left' for decoder-only models
     tokenizer.padding_side = 'left'
-    
-    # Check if the tokenizer has a pad_token; if not, assign one
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Load the model in full precision (initial step before ONNX export)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Export the model to ONNX
-    onnx_file_path = f"{model_name.replace('/', '_')}.onnx"
-    dummy_input = tokenizer("Hello", return_tensors="pt").input_ids.to("cuda")
+    # Initialize an empty model
+    with init_empty_weights():
+        config = AutoConfig.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_config(config)
 
-    torch.onnx.export(
+    # Load model with CPU offloading
+    model = load_checkpoint_and_dispatch(
         model,
-        dummy_input,
-        onnx_file_path,
-        opset_version=13,
-        input_names=['input_ids'],
-        output_names=['logits'],
-        dynamic_axes={'input_ids': {0: 'batch_size', 1: 'sequence_length'}}
+        model_name,
+        device_map='auto',
+        no_split_module_classes=['GPTJBlock'],  # For GPT-J specific modules
+        dtype=torch.float16 if device.type == 'cuda' else torch.float32,
     )
-    
-    print(f"Model exported to {onnx_file_path}")
 
-    # Apply quantization if specified
-    if quantization_type == 'fp16':
-        print(f"Applying FP16 quantization to {onnx_file_path}...")
-        onnx_model = onnx.load(onnx_file_path)
-        model_fp16 = convert_float_to_float16(onnx_model)
-        quantized_model_path = onnx_file_path.replace(".onnx", "_fp16.onnx")
-        onnx.save(model_fp16, quantized_model_path)
-        print(f"Model quantized to FP16 and saved at {quantized_model_path}")
-        return tokenizer, quantized_model_path
-
-    elif quantization_type == 'int8':
-        print(f"Applying INT8 quantization to {onnx_file_path}...")
-        quantized_model_path = onnx_file_path.replace(".onnx", "_int8.onnx")
-        quantize_dynamic(
-            model_input=onnx_file_path,
-            model_output=quantized_model_path,
-            weight_type=QuantType.QInt8  # Use INT8 for weights
-        )
-        print(f"Model quantized to INT8 and saved at {quantized_model_path}")
-        return tokenizer, quantized_model_path
-
-    return tokenizer, onnx_file_path
+    return tokenizer, model
 
 
 
