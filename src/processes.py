@@ -274,20 +274,14 @@ async def process_model(
                                                     batch_paragon= batch_paragon, ranking_window = ranking_window)
 
         # Process prompts in batches and get results
-        #batch_results = _process_prompts_in_batches(
-        #    prompts=prompts,
-        #    tokenizer=tokenizer,
-        #    model=model,
-        #    device=device,
-        #    batch_size=batch_size,
-        #)
         batch_results = _process_prompts_in_batches(
             prompts=prompts,
             tokenizer=tokenizer,
-            onnx_file_path=model,
+            model=model,
+            device=device,
             batch_size=batch_size,
-            max_new_tokens=150
         )
+
         print("AAAAAAAAAAA")
         print("AAAAAAAAAAA")
         print("AAAAAAAAAAA")
