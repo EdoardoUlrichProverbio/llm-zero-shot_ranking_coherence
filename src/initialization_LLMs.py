@@ -5,33 +5,29 @@ from transformers import PreTrainedTokenizer, PreTrainedModel
 
 
 
+def load_model(model_name: str):
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+    import torch
 
-def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:
-    """
-    Load a model and tokenizer with proper padding token handling, using half-precision.
-    Args:
-        model_name (str): Name of the model to load.
-    Returns:
-        tokenizer, model: The tokenizer and half-precision model loaded.
-    """
-    # Load the tokenizer
-    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(model_name)
-
-    # Set padding side to 'left' for decoder-only models
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.padding_side = 'left'
-
-    # Check if the tokenizer has a pad_token; if not, assign one
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Load the model in half-precision
-    model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch.float16,
-        device_map="auto"
-    )
+    # Define maximum memory per device
+    max_memory = {
+        0: '14GB',    # Adjust based on your GPU's available memory
+        'cpu': '30GB'  # Adjust based on your system's RAM
+    }
 
-    print(f"Loaded model in half-precision: {model_name}")
+    # Load the model with specified max memory
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        device_map='auto',
+        max_memory=max_memory,
+        torch_dtype=torch.float16,
+        low_cpu_mem_usage=True,
+    )
 
     return tokenizer, model
 
