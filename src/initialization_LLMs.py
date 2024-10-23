@@ -5,7 +5,8 @@ from transformers import PreTrainedTokenizer, PreTrainedModel
 
 import onnx
 import onnxruntime
-from onnxruntime.quantization import quantize_dynamic, QuantType, convert_float_to_float16
+from onnxruntime.quantization import quantize_dynamic, QuantType
+from onnxconverter_common.float16 import convert_float_to_float16
 
 
 #def load_model(model_name: str) -> Tuple[PreTrainedTokenizer, PreTrainedModel]:

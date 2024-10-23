@@ -10,3 +10,4 @@ onnx
 onnxruntime
 onnxruntime-tools
 onnxruntime-gpu
+onnxconverter_common
