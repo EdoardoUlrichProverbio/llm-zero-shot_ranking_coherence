@@ -269,7 +269,7 @@ def _save_batch_results_to_csv(batch_results: List[Dict[int, int]],
 
 async def process_model(
     model_name: str,
-    model: Union[PreTrainedModel | str],
+    model: Union[PreTrainedModel, str],
     tokenizer: PreTrainedTokenizer,
     batches: List[List[str]],
     batches_info: List[List[Tuple[str, str]]],
