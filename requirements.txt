@@ -13,3 +13,4 @@ onnxruntime-gpu
 onnxconverter_common
 langchain
 requests
+ctransformers 
