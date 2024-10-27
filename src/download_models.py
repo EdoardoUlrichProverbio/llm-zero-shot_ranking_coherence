@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
-
 import os
 import requests
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, HfApi
+
+# Optional: Set your Hugging Face token as an environment variable
+HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 def download_file(url, output_path):
     """Downloads a file from a URL to a local path using HTTP."""
@@ -25,7 +26,14 @@ def download_from_huggingface(repo_id, filename, output_path):
     try:
         print(f"Trying Hugging Face Hub for {filename}...")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        file_path = hf_hub_download(repo_id=repo_id, filename=filename, cache_dir=os.path.dirname(output_path))
+        
+        # Use token if provided
+        file_path = hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            cache_dir=os.path.dirname(output_path),
+            token=HUGGINGFACE_TOKEN  # Token is optional and used only if available
+        )
         os.rename(file_path, output_path)  # Move to desired location
         print(f"Downloaded {filename} from Hugging Face to {output_path}")
     except Exception as e:
@@ -123,7 +131,7 @@ def main():
             try:
                 download_file(url, path)
                 print(f"Downloaded {name} to {path}\n")
-            except Exception as http_err:
+            except requests.exceptions.RequestException as http_err:
                 print(f"Direct HTTP download failed for {name}: {http_err}")
                 print("Attempting download from Hugging Face Hub...")
                 download_from_huggingface(repo_id, filename, path)
