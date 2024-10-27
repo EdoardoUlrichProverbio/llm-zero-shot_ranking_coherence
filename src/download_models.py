@@ -92,11 +92,8 @@ def main():
         'path': 'llms/models/4bitmodels/llama-2-7b.ggmlv3.q4_0.bin',
     },
 ]
-
-
     for model_info in model_info_list:
         name = model_info['name']
-        url = model_info['url']
         path = model_info['path']
         repo_id = model_info['repo_id']
         filename = model_info['filename']
@@ -108,18 +105,12 @@ def main():
                 print(f"{path} already exists. Skipping download.")
                 continue
 
-            # First attempt: Direct HTTP download
-            try:
-                download_file(url, path)
-                print(f"Downloaded {name} to {path}\n")
-            except requests.exceptions.RequestException as http_err:
-                print(f"Direct HTTP download failed for {name}: {http_err}")
-                print("Attempting download from Hugging Face Hub...")
-                download_from_huggingface(repo_id, filename, path)
+            # Attempt to download from Hugging Face Hub
+            download_from_huggingface(repo_id, filename, path)
 
         except Exception as e:
-            print(f"Failed to download {name} using both methods: {e}\n")
-            print("Please ensure you have access rights and the URL is correct.")
+            print(f"Failed to download {name}: {e}\n")
+            print("Please ensure you have access rights and the repository and filename are correct.")
             print("Some models may require manual download due to licensing restrictions.")
 
 if __name__ == "__main__":
