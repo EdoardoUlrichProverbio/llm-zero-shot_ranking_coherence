@@ -1,7 +1,9 @@
 
 from transformers import PreTrainedTokenizer, PreTrainedModel
+from ctransformers import AutoModelForCausalLM
 from itertools import combinations
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict, Union, Any
+from langchain.llms import CTransformers
 import onnxruntime
 import pandas as pd
 import numpy as np
@@ -49,7 +51,7 @@ def _update_results(csv_filename:str, batch:List[str], batch_genres:List[str], b
 
 
 
-def transitivity_check(rankings: List[Dict[int, int]]):
+def _transitivity_check(rankings: List[Dict[int, int]]):
     """
     Perform pairwise comparison of rankings to detect transitivity violations.
     Args:
@@ -123,75 +125,110 @@ def _construct_prompts(
 
 
 
-    return prompts, batch_indices
-
-
+#    return prompts, batch_indices
+#
+#
+#
+#def _process_prompts_in_batches(
+#    prompts: List[str],
+#    tokenizer: PreTrainedTokenizer,
+#    model: PreTrainedModel,
+#    device: torch.device,
+#    batch_size: int,
+#    max_new_tokens: int = 150
+#) -> List[Dict[int, int]]:
+#    """
+#    Processes the prompts in batches and returns the parsed results.
+#    Args:
+#        prompts (List[str]): List of prompts to process.
+#        tokenizer (PreTrainedTokenizer): The tokenizer used to tokenize the prompts.
+#        model (PreTrainedModel): The model used for inference.
+#        device (torch.device): The device to run the model on.
+#        batch_size (int, optional): Number of prompts to process in each batch. Defaults to 16.
+#        max_new_tokens (int, optional): Maximum number of tokens to generate. Defaults to 50.
+#    Returns:
+#        List[Dict[int, int]]: A list of parsed results from the model output.
+#    """
+#    results = []
+#
+#    for i in range(0, len(prompts), batch_size):
+#        batch_prompts = prompts[i:i+batch_size]
+#
+#        # Tokenize and process prompts in batch
+#        inputs = tokenizer(
+#            batch_prompts,
+#            return_tensors="pt",
+#            truncation=True,
+#            padding = True,
+#            max_length=tokenizer.model_max_length
+#        ).to(device)
+#
+#        with torch.no_grad():
+#            outputs = model.generate(
+#                **inputs,
+#                max_new_tokens=max_new_tokens,
+#                do_sample=False,
+#                temperature=0.0,
+#                no_repeat_ngram_size=2,
+#                eos_token_id=tokenizer.eos_token_id,
+#                pad_token_id=tokenizer.eos_token_id
+#            )
+#        batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+#        # Parse and store results
+#        for output in batch_outputs:
+#            try:
+#                parsed_result = ast.literal_eval(output)
+#                results.append(parsed_result)
+#            except Exception as e:
+#                print(f"Error parsing result: {output}\nException: {e}")
+#
+#    return results
 
 def _process_prompts_in_batches(
     prompts: List[str],
-    tokenizer: PreTrainedTokenizer,
-    model: PreTrainedModel,
-    device: torch.device,
+    llm: AutoModelForCausalLM,
     batch_size: int,
     max_new_tokens: int = 150
-) -> List[Dict[int, int]]:
+) -> List[Dict[Any, Any]]:
     """
-    Processes the prompts in batches and returns the parsed results.
+    Processes the prompts in batches using the provided LLM and returns the parsed results.
+
     Args:
         prompts (List[str]): List of prompts to process.
-        tokenizer (PreTrainedTokenizer): The tokenizer used to tokenize the prompts.
-        model (PreTrainedModel): The model used for inference.
-        device (torch.device): The device to run the model on.
-        batch_size (int, optional): Number of prompts to process in each batch. Defaults to 16.
-        max_new_tokens (int, optional): Maximum number of tokens to generate. Defaults to 50.
+        llm (AutoModelForCausalLM): The loaded language model from ctransformers.
+        batch_size (int): Number of prompts to process in each batch.
+        max_new_tokens (int, optional): Maximum number of tokens to generate. Defaults to 150.
+
     Returns:
-        List[Dict[int, int]]: A list of parsed results from the model output.
+        List[Dict[Any, Any]]: A list of parsed results from the model output.
     """
-    results = []
+    results: List[Dict[Any, Any]] = []
 
     for i in range(0, len(prompts), batch_size):
-        batch_prompts = prompts[i:i+batch_size]
+        batch_prompts = prompts[i:i + batch_size]
 
-        # Tokenize and process prompts in batch
-        inputs = tokenizer(
-            batch_prompts,
-            return_tensors="pt",
-            truncation=True,
-            padding = True,
-            max_length=tokenizer.model_max_length
-        ).to(device)
-
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=False,
-                temperature=0.0,
-                no_repeat_ngram_size=2,
-                eos_token_id=tokenizer.eos_token_id,
-                pad_token_id=tokenizer.eos_token_id
-            )
-        batch_outputs = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-
-        print(batch_outputs[0])
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        print(batch_outputs[3])
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        print(batch_outputs[11])
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        print(batch_outputs[17])
-        exit(1)
-        # Parse and store results
-        for output in batch_outputs:
+        for prompt in batch_prompts:
             try:
-                parsed_result = ast.literal_eval(output)
+                # Generate output using the LLM
+                output: str = llm(
+                    prompt,
+                    max_new_tokens=max_new_tokens,
+                    temperature=0.0,
+                    stop=None,
+                )
+
+                # Parse and store results
+                parsed_result = ast.literal_eval(output.strip())
                 results.append(parsed_result)
-            except Exception as e:
+
+            except SyntaxError as e:
                 print(f"Error parsing result: {output}\nException: {e}")
+                results.append(None)
+            except Exception as e:
+                print(f"Error generating prompt: {prompt}\nException: {e}")
+                results.append(None)
 
     return results
-
-
 
 def _save_batch_results_to_csv(batch_results: List[Dict[int, int]], 
                                output_csv_file, 
@@ -220,8 +257,8 @@ def _save_batch_results_to_csv(batch_results: List[Dict[int, int]],
 
 async def process_model(
     model_name: str,
-    model: Union[PreTrainedModel, str],
-    tokenizer: PreTrainedTokenizer,
+    model: AutoModelForCausalLM,
+    #tokenizer: PreTrainedTokenizer,
     batches: List[List[str]],
     batches_info: List[List[Tuple[str, str]]],
     batches_paragon: Tuple[str],
@@ -241,7 +278,6 @@ async def process_model(
     Returns:
         None: Results are saved to a CSV file.
     """
-    device = next(model.parameters()).device
     n_batches = len(batches)
     results = []
 
@@ -259,7 +295,6 @@ async def process_model(
         indexed_descriptions = {i: desc for i, desc in enumerate(batch)}
 
         # Generate all combinations of descriptions of size 'ranking_window'
-        ranking_window = 3  # Example value
         all_combinations = list(combinations(indexed_descriptions.items(), ranking_window))
 
         # Calculate dynamic batch size
@@ -276,9 +311,8 @@ async def process_model(
         # Process prompts in batches and get results
         batch_results = _process_prompts_in_batches(
             prompts=prompts,
-            tokenizer=tokenizer,
+            #tokenizer=tokenizer,
             model=model,
-            device=device,
             batch_size=batch_size,
         )
 
@@ -294,7 +328,7 @@ async def process_model(
 
         _save_batch_results_to_csv(batch_results, csv_filename_Transitivity, batch_index=batch_idx)
 
-        transitivity = transitivity_check(rankings=batch_results)
+        transitivity = _transitivity_check(rankings=batch_results)
 
         batch_genres = [genre for _, genre in batches_info[batch_idx]] 
         _update_results(csv_filename=csv_filename, batch=batch, batch_genres=batch_genres,

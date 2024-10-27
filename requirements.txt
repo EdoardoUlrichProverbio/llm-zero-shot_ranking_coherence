@@ -11,3 +11,5 @@ onnxruntime
 onnxruntime-tools
 onnxruntime-gpu
 onnxconverter_common
+langchain
+requests

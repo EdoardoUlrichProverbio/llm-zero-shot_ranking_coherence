@@ -1,12 +1,12 @@
 import gc
 import asyncio  
-from src.initialization_LLMs import load_all_models
+from src.llms.initialization_LLMs import load_all_models
 from src.processes import process_model
 from src.dataset_func.load_dataset import load_dataset
 from src.dataset_func.process_dataset import process_dataset
 from src.dataset_func.batches import prepare_batches
 from src.analysis import perform_result_analysis
-from src.resources.model_names import model_names
+from src.resources.model_names import model_info_list
 
 # PARAMETERS
 BATCH_SIZE = 8
@@ -44,30 +44,44 @@ if __name__ == "__main__":
     if MODEL_LOADING:
         if RUN_MODE == 'single':
             # Single model mode: Load and process one model at a time without asyncio
-            for model_name in model_names:
+            for model_name in model_info_list:
                 print(f"Loading and processing model: {model_name}")
 
                 # Load the model and tokenizer for the current model
-                tokenizers, models = load_all_models([model_name])
-                tokenizer = tokenizers[model_name]
-                model = models[model_name]
+                #tokenizers, models = load_all_models([model_name])
+                #tokenizer = tokenizers[model_name]
+                #model = models[model_name]
+
+                model = load_all_models([model_name])
 
                 try:
                     # Use asyncio.run() to run the async process_model function in a synchronous context
+                    #asyncio.run(process_model(
+                    #    model_name=model_name,
+                    #    model=model,
+                    #    tokenizer=tokenizer,
+                    #    batches=batches,
+                    #    batches_info=batches_info,
+                    #    batches_paragon=batches_paragon,
+                    #    ranking_window=RANKING_WINDOW
+                    #))
+
                     asyncio.run(process_model(
                         model_name=model_name,
                         model=model,
-                        tokenizer=tokenizer,
                         batches=batches,
                         batches_info=batches_info,
                         batches_paragon=batches_paragon,
                         ranking_window=RANKING_WINDOW
                     ))
+
+
                 except Exception as e:
                     print(f"Error processing model {model_name}: {e}")
 
                 # Free memory after processing the model
-                del tokenizer, model, tokenizers, models
+                #del tokenizer, model, tokenizers, models
+                del model
                 gc.collect()  # Trigger garbage collection
 
         elif RUN_MODE == 'batch':
@@ -95,7 +109,7 @@ if __name__ == "__main__":
                             return None
 
                 # Split model_names into batches
-                model_batches = [model_names[i:i + MODEL_BATCH] for i in range(0, len(model_names), MODEL_BATCH)]
+                model_batches = [model_info_list[i:i + MODEL_BATCH] for i in range(0, len(model_info_list), MODEL_BATCH)]
 
                 # Process each batch of models
                 for batch in model_batches:
